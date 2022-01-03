@@ -1,0 +1,44 @@
+{
+  "action": "U",
+  "schema": "public",
+  "table": "outbox",
+  "columns": [
+    {
+      "name": "aggregateid",
+      "type": "uuid",
+      "value": "24b4adeb-e0dd-4c3b-9fe3-bb822eaef8d7"
+    },
+    {
+      "name": "model",
+      "type": "character varying(256)",
+      "value": "test"
+    },
+    {
+      "name": "message_schema",
+      "type": "character varying(40)",
+      "value": "0.2.1"
+    },
+    {
+      "name": "message",
+      "type": "bytea",
+      "value": "617364617364617364"
+    },
+    {
+      "name": "previous_message_schema",
+      "type": "character varying(40)",
+      "value": "0.1.1"
+    },
+    {
+      "name": "previous_message",
+      "type": "bytea",
+      "value": "617364617364617364"
+    }
+  ],
+  "identity": [
+    {
+      "name": "aggregateid",
+      "type": "uuid",
+      "value": "24b4adeb-e0dd-4c3b-9fe3-bb822eaef8d7"
+    }
+  ]
+}
