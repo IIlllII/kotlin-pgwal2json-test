@@ -1,8 +1,6 @@
 
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.sql.ResultSet
 import java.util.*
 
 object Outbox : Table() {
@@ -12,40 +10,8 @@ object Outbox : Table() {
     val message = blob("message")
     val previousSchema = varchar("previous_message_schema", length = 40).nullable()
     val previousMessage = blob("previous_message").nullable()
+    val version = bool("refresh")
     override val primaryKey = PrimaryKey(aggregateId, name = "PK_NEW_AGGREGATE_ID") // name is optional here
-}
-
-fun <T:Any> String.execAndMap(transform : (ResultSet) -> T) : List<T> {
-    val result = arrayListOf<T>()
-    TransactionManager.current().exec(this) { rs ->
-        while (rs.next()) {
-            result += transform(rs)
-        }
-    }
-    return result
-}
-
-
-fun Transaction.addToOutBox(
-    aggregateId : UUID,
-    model : String,
-    schema : String,
-    message : ByteArray
-) {
-    exec(stmt = """
-            |INSERT INTO outbox AS oref (aggregateid, model, message_schema, message, previous_message_schema,previous_message) VALUES (?,?,?,?,?,?) 
-            |ON CONFLICT (aggregateid) 
-            |DO UPDATE SET aggregateid = EXCLUDED.aggregateid, model = EXCLUDED.model, message_schema = EXCLUDED.message_schema, message = EXCLUDED.message, previous_message_schema = oref.message_schema, previous_message = oref.message 
-            |""".trimMargin(),
-        args = listOf(
-            UUIDColumnType() to aggregateId,
-            VarCharColumnType() to model,
-            VarCharColumnType() to schema,
-            BlobColumnType() to message,
-            VarCharColumnType() to null,
-            BlobColumnType() to null
-        )
-    )
 }
 
 
@@ -66,6 +32,30 @@ fun main() {
         SchemaUtils.create (Outbox)
     }
 
+    addTestData(db)
+
+    while(true) {
+        val json = transaction(db) {
+            "SELECT data FROM pg_logical_slot_get_changes('test_slot', NULL, NULL, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','format-version','1','add-tables','*.outbox')".execAndMap { rs ->
+                val json = rs.getObject("data")
+                json
+            }
+        }
+        if(json.isEmpty()){
+            println("No changes")
+        }
+        else {
+            json.forEach {
+                println(it)
+            }
+        }
+        Thread.sleep(5000)
+    }
+
+
+}
+
+private fun addTestData(db: Database) {
     val dt = UUID.randomUUID()
     transaction(db) {
         addToOutBox(
@@ -93,13 +83,4 @@ fun main() {
             "asdasdasd".toByteArray()
         )
     }
-
-    transaction(db) {
-        "SELECT data FROM pg_logical_slot_get_changes('test_slot', NULL, NULL, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','format-version','2','add-tables','*.outbox')".execAndMap { rs ->
-            val data = rs.getObject("data")
-            println(data)
-        }
-    }
-
-
 }
