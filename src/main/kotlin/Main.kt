@@ -5,7 +5,6 @@ import java.util.*
 
 object Outbox : Table() {
     val aggregateId = uuid("aggregateid")
-    val model = varchar("model", length = 256)
     val schema = varchar("message_schema", length = 40)
     val message = blob("message")
     val previousSchema = varchar("previous_message_schema", length = 40).nullable()
@@ -60,7 +59,6 @@ private fun addTestData(db: Database) {
     transaction(db) {
         addToOutBox(
             dt,
-            "test",
             "0.1.1",
             "asdlkfjaødlsfjkaø".toByteArray()
         )
@@ -69,7 +67,6 @@ private fun addTestData(db: Database) {
     transaction(db) {
         addToOutBox(
             dt,
-            "test",
             "0.1.1",
             "asdasdasd".toByteArray()
         )
@@ -78,7 +75,6 @@ private fun addTestData(db: Database) {
     transaction(db) {
         addToOutBox(
             dt,
-            "test",
             "0.2.1",
             "asdasdasd".toByteArray()
         )
