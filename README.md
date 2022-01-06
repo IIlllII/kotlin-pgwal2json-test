@@ -27,3 +27,22 @@ An easy way to touch all rows to trigger a WAL entry and therefore send, is to d
 update outbox set refresh = true where refresh=true;
 ```
 
+The current implementation does an at-most-once send, since it does
+```
+SELECT data FROM pg_logical_slot_get_changes('test_slot', NULL, NULL, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','include-lsn','true', 'format-version','1','add-tables','*.outbox')
+```
+Here the replication slot is already advanced, so if using the data fails, it is lost.
+
+For at least once, you can do:
+```
+SELECT data FROM pg_logical_slot_peek_changes('test_slot', NULL, 100, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','include-lsn','true'); //Get changes
+//Process and send changes
+SELECT * from  pg_replication_slot_advance('test_slot','last <lsn> you got'); //Ack data so it is not sent again.
+```
+
+### Replication slot
+This is what ensures that the WAL is not deleted until it has been replicated.
+Created by:
+```
+SELECT 'init' FROM pg_create_logical_replication_slot('test_slot', 'wal2json')
+```
