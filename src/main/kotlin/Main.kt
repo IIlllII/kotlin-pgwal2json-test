@@ -34,8 +34,9 @@ fun main() {
     addTestData(db)
 
     while(true) {
+
         val json = transaction(db) {
-            "SELECT data FROM pg_logical_slot_get_changes('test_slot', NULL, NULL, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','format-version','1','add-tables','*.outbox')".execAndMap { rs ->
+            "SELECT data FROM pg_logical_slot_get_changes('test_slot', NULL, NULL, 'pretty-print', '1', 'add-msg-prefixes', 'wal2json','include-lsn','true', 'format-version','1','add-tables','*.outbox')".execAndMap { rs ->
                 val json = rs.getObject("data")
                 json
             }
